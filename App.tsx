@@ -1091,7 +1091,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-home'}>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '300px', height: '300px', background: 'rgba(168,85,247,0.15)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
-        <div style={{ flex: 1, padding: '56px 24px 112px', overflowY: 'auto', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+        <div style={{ flex: 1, padding: '96px 24px 120px', overflowY: 'auto', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
           <nav style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '24px' }}>
             <button onClick={() => navigateTo('view-settings')} className="glass glass-btn"
               title="Settings"
@@ -1179,14 +1179,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a', overflow: 'hidden' }}
         aria-hidden={currentView !== 'view-voice'} />
       
-      {/* Global Header with orb — only on views without their own top
-          navigation, otherwise the hamburger and orb overlap the page's
-          back button / title row. */}
-      {(currentView === 'view-home' || currentView === 'view-voice') && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
-          <Header />
-        </div>
-      )}
+      {/* Global Header — sticky across all pages */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
+        <Header />
+      </div>
 
       {/* StreamingConsole renders as fixed overlay so its position:fixed elements don't break */}
       <div style={{
@@ -1206,7 +1202,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-text'}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '56px 24px 16px', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'sticky', top: 'var(--header-height)', zIndex: 50, background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginTop: 'var(--header-height)' }}>
             <button onClick={goBack} className="glass glass-btn"
               style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
@@ -1256,7 +1252,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </div>
-          <form onSubmit={e => { e.preventDefault(); sendChatMessage(); }} style={{ background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '12px 24px 16px', position: 'sticky', bottom: 0, zIndex: 60, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <form onSubmit={e => { e.preventDefault(); sendChatMessage(); }} style={{ background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '12px 24px calc(16px + env(safe-area-inset-bottom, 0px))', position: 'sticky', bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))', zIndex: 60, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             {/* Hidden file pickers. Paperclip = any file. Camera =
                 image-only with `capture` so mobile shows take-photo +
                 gallery. Both go through extractChatAttachment(). */}
@@ -1315,8 +1311,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-history'}>
         <div style={{ position: 'absolute', bottom: 0, right: 0, width: '250px', height: '250px', background: 'rgba(168,85,247,0.1)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '56px 24px 48px', height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '0 24px 120px', height: '100%' }}>
+          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0, paddingTop: 'calc(var(--header-height) + 16px)' }}>
             <button onClick={goBack} className="glass glass-btn"
               style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
@@ -1372,8 +1368,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
         className={'page-view' + (currentView === 'view-settings' ? ' active' : '')}
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-settings'}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '56px 24px 48px', height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '0 24px 120px', height: '100%' }}>
+          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0, paddingTop: 'calc(var(--header-height) + 16px)' }}>
             <button onClick={goBack} className="glass glass-btn"
               style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
@@ -1896,8 +1892,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
           with sticky input forms (text/image/video) get their own header
           shortcuts so they don't overlap. */}
       {(() => {
-        const NAV_VISIBLE_VIEWS = new Set(['view-home', 'view-profile']);
-        const navVisible = NAV_VISIBLE_VIEWS.has(currentView);
+        const NAV_HIDDEN_VIEWS = new Set(['view-splash', 'view-auth', 'view-voice']);
+        const navVisible = !NAV_HIDDEN_VIEWS.has(currentView);
         const navItem = (target: string, icon: string, label: string) => (
           <button
             key={target}
@@ -1925,22 +1921,22 @@ function AppShell({ children }: { children: React.ReactNode }) {
         return (
           <nav id="bottom-nav"
             style={{
-              position: 'absolute',
-              bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+              position: 'fixed',
+              bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
               left: '50%',
-              transform: 'translateX(-50%)',
-              width: '90%',
-              maxWidth: '400px',
-              background: 'rgba(10, 10, 15, 0.85)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              transform: navVisible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(100px)',
+              width: 'calc(100% - 48px)',
+              maxWidth: '420px',
+              background: 'rgba(10, 10, 15, 0.92)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: '28px',
               padding: '8px 16px',
               display: 'flex',
               justifyContent: 'space-around',
               alignItems: 'flex-end',
-              zIndex: 50,
+              zIndex: 500,
               opacity: navVisible ? 1 : 0,
               pointerEvents: navVisible ? 'auto' : 'none',
               transition: 'opacity 0.3s, transform 0.3s',

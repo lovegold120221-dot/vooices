@@ -11,6 +11,8 @@ import { auth } from '@/lib/firebase';
 import { useState, useEffect } from 'react';
 import c from 'classnames';
 
+type BeatriceStatus = 'idle' | 'listening' | 'speaking';
+
 interface HeaderProps {
   currentView?: string;
   onBack?: () => void;
@@ -21,10 +23,12 @@ interface HeaderProps {
 export default function Header({ currentView = 'view-home', onBack, onNavigate, onClearHistory }: HeaderProps) {
   const { isGeneratingTask, toggleSidebar } = useUI();
   const micLevel = useUI(state => state.micLevel);
+  const micMuted = useUI(state => state.micMuted);
   const { connected, volume } = useLiveAPIContext();
   const { isProcessingTask } = useProcessingStore();
   const profile = useUserProfileStore(state => state.profile);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [status, setStatus] = useState<BeatriceStatus>('idle');
 
   useEffect(() => {
     return onAuthStateChanged(auth, u => setCurrentUser(u));
@@ -42,6 +46,34 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
   const orbEnergy = connected ? Math.max(0.08, micLevel, volume * 0.9) : 0.06;
   const orbScale = 1 + orbEnergy * 0.18;
   const isHome = currentView === 'view-home' || currentView === 'view-voice' || currentView === 'view-splash' || currentView === 'view-auth';
+  const isMainChatPage = currentView === 'view-text';
+  const isSecondaryPage = !['view-splash', 'view-auth'].includes(currentView) && !isMainChatPage;
+
+  useEffect(() => {
+    if (!connected) {
+      setStatus('idle');
+      return;
+    }
+
+    if (volume > 0.05) {
+      setStatus('speaking');
+      return;
+    }
+
+    if (!micMuted && micLevel > 0.06) {
+      setStatus('listening');
+      return;
+    }
+
+    const timer = window.setTimeout(() => setStatus('idle'), 260);
+    return () => window.clearTimeout(timer);
+  }, [connected, micLevel, micMuted, volume]);
+
+  const statusCopy: Record<BeatriceStatus, string> = {
+    idle: 'Idle',
+    listening: 'Listening...',
+    speaking: 'Speaking...',
+  };
 
   const pageTitles: Record<string, string> = {
     'view-text': 'Beatrice',
@@ -54,7 +86,7 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
   const pageTitle = pageTitles[currentView] ?? '';
 
   const iconBtn = (onClick: () => void, icon: string, title: string) => (
-    <button onClick={onClick} title={title} style={{
+    <button onClick={onClick} title={title} aria-label={title} style={{
       width: '36px', height: '36px', borderRadius: '50%',
       background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -68,8 +100,8 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
     <header>
       {/* Left */}
       <div className="header-left">
-        {isHome ? (
-          <button onClick={toggleSidebar} title="Menu" style={{
+        {isMainChatPage ? (
+          <button onClick={toggleSidebar} title="Open tools and services" aria-label="Open tools and services" style={{
             width: '36px', height: '36px', borderRadius: '50%',
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -77,8 +109,10 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
           }}>
             <i className="ph ph-list" style={{ fontSize: '20px' }}></i>
           </button>
-        ) : (
+        ) : isSecondaryPage ? (
           iconBtn(() => onBack?.(), 'ph ph-caret-left', 'Back')
+        ) : (
+          <div style={{ width: '36px', height: '36px' }} aria-hidden="true" />
         )}
       </div>
 
@@ -92,6 +126,14 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
               boxShadow: '0 0 12px rgba(217,70,239,0.5)',
             }} />
             <span style={{ fontSize: '16px', fontWeight: 600, color: 'white', letterSpacing: '-0.02em', fontFamily: "'Outfit', sans-serif" }}>Beatrice</span>
+            <span className={c('header-status-pill', {
+              'status-idle': status === 'idle',
+              'status-listening': status === 'listening',
+              'status-speaking': status === 'speaking',
+            })} aria-live="polite">
+              <span className="header-status-indicator" aria-hidden="true" />
+              <span>{statusCopy[status]}</span>
+            </span>
             {showHeaderOrb && (
               <div className="header-orb-wrapper" style={{ marginLeft: '2px' }}>
                 <div className={c('header-orb', { 'animate-pulse-glow': connected })} style={{
@@ -108,12 +150,14 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <span style={{ fontSize: '15px', fontWeight: 500, color: 'white' }}>{pageTitle}</span>
-            {currentView === 'view-text' && (
-              <span style={{ fontSize: '10px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <span style={{ width: '5px', height: '5px', background: '#4ade80', borderRadius: '50%' }} />
-                Online
-              </span>
-            )}
+            <span className={c('header-status-pill compact', {
+              'status-idle': status === 'idle',
+              'status-listening': status === 'listening',
+              'status-speaking': status === 'speaking',
+            })} aria-live="polite">
+              <span className="header-status-indicator" aria-hidden="true" />
+              <span>{statusCopy[status]}</span>
+            </span>
           </div>
         )}
       </div>
@@ -123,7 +167,7 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
         {currentView === 'view-text' && onNavigate &&
           iconBtn(() => onNavigate('view-history'), 'ph ph-clock-counter-clockwise', 'History')}
         {currentView === 'view-history' && onClearHistory && (
-          <button onClick={onClearHistory} style={{
+          <button onClick={onClearHistory} aria-label="Clear history" title="Clear history" style={{
             fontSize: '11px', color: 'rgba(248,113,113,0.7)', padding: '6px 12px',
             borderRadius: '9999px', cursor: 'pointer',
             background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',

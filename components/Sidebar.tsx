@@ -65,6 +65,7 @@ export default function Sidebar() {
             onClick={logout}
             className="p-2 border border-white/10 rounded-full hover:bg-white/5 text-gray-400 transition"
             title="Sign Out"
+            aria-label="Sign out"
           >
             <span className="material-symbols-outlined text-sm">logout</span>
           </button>
@@ -72,6 +73,7 @@ export default function Sidebar() {
             onClick={toggleSidebar}
             className="p-2 border border-white/10 rounded-full hover:bg-white/5 text-gray-400 transition"
             title="Close Sidebar"
+            aria-label="Close tools and services panel"
           >
             <span className="material-symbols-outlined text-sm">close</span>
           </button>

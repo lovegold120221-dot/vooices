@@ -94,6 +94,14 @@ interface Conversation {
   updatedAt: number;
 }
 
+function formatFileSize(size: number): string {
+  if (!Number.isFinite(size) || size <= 0) return 'Unknown size';
+  if (size < 1024) return `${size} B`;
+  const kb = size / 1024;
+  if (kb < 1024) return `${kb.toFixed(kb >= 100 ? 0 : 1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
 function renderProcessingServiceVisual(serviceKey: ProcessingServiceKey) {
   const service = PROCESSING_SERVICE_VISUALS[serviceKey];
 
@@ -433,7 +441,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     setProcessingMessages([]);
 
     // 1) Show Beatrice opening message
-    const userName = profile?.preferred_name || currentUser?.displayName;
+    const userName = profile?.preferred_name || currentUser?.displayName || undefined;
     const opening = getBeatriceOpening(taskInfo, userName);
     setProcessingMessages([{ id: 'opening_0', text: opening, type: 'opening' }]);
     updateProcessingConsoleState(prev => {
@@ -826,6 +834,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const chatFileInputRef = useRef<HTMLInputElement>(null);
   const chatCameraInputRef = useRef<HTMLInputElement>(null);
   const [attachmentLoading, setAttachmentLoading] = useState(false);
+  const cameraEnabled = useUI(state => state.cameraEnabled);
+  const cameraPreviewUrl = useUI(state => state.cameraPreviewUrl);
 
   const handleChatCamera = useCallback(() => {
     chatCameraInputRef.current?.click();
@@ -989,6 +999,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   // ─── Render ──────────────────────
+  const canSend = chatInput.trim().length > 0 && !isStreaming && !attachmentLoading;
+
   return (
     <main className="device-container" id="app">
       {/* SPLASH */}
@@ -1192,6 +1204,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
         aria-hidden={currentView !== 'view-text'}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, height: '100%' }}>
           <div ref={chatRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px 24px', paddingTop: 'calc(var(--header-height) + 16px)' }} className="no-scrollbar">
+            {cameraEnabled && cameraPreviewUrl && (
+              <div className="chat-camera-preview" aria-live="polite">
+                <div className="chat-camera-preview-header">
+                  <span className="chat-camera-preview-dot" aria-hidden="true" />
+                  <span>Live camera input</span>
+                </div>
+                <img
+                  src={cameraPreviewUrl}
+                  alt="Live camera preview"
+                  className="chat-camera-preview-image"
+                />
+              </div>
+            )}
             {chatMessages.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
                 <div style={{ textAlign: 'center' }}>
@@ -1214,6 +1239,30 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   }}>
                   {msg.reasoning_content && (
                     <p style={{ fontSize: '11px', color: 'rgba(250,204,21,0.8)', fontStyle: 'italic', marginBottom: '8px' }}>🧠 {msg.reasoning_content}</p>
+                  )}
+                  {msg.attachment && (
+                    <div className="chat-attachment-card">
+                      <div className="chat-attachment-icon-wrap" aria-hidden="true">
+                        <i className={attachmentIcon(msg.attachment.kind)} style={{ fontSize: '18px' }} />
+                      </div>
+                      <div className="chat-attachment-copy">
+                        <p className="chat-attachment-name">{msg.attachment.filename}</p>
+                        <p className="chat-attachment-meta">
+                          {attachmentLabel(msg.attachment.kind)}
+                          {' • '}
+                          {msg.attachment.mimeType || 'unknown type'}
+                          {' • '}
+                          {formatFileSize(msg.attachment.size)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {msg.attachment?.imageDataUrl && (
+                    <img
+                      src={msg.attachment.imageDataUrl}
+                      alt={msg.attachment.filename}
+                      className="chat-attachment-image"
+                    />
                   )}
                   <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#d1d5db' }}>{msg.content}</p>
                 </div>
@@ -1255,6 +1304,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={handleChatAttachClick}
                 disabled={attachmentLoading}
+                aria-label="Attach file"
                 title="Attach any file — PDF, DOCX, XLSX, CSV, PPTX, image, text — Beatrice reads it and adds it to your knowledgebase."
                 style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: attachmentLoading ? 'wait' : 'pointer', color: '#9ca3af', opacity: attachmentLoading ? 0.5 : 1 }}>
                 <i className="ph ph-paperclip" style={{ fontSize: '18px' }}></i>
@@ -1263,15 +1313,34 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={handleChatCamera}
                 disabled={attachmentLoading}
+                aria-label="Open camera input"
                 title="Take a photo or pick an image — Beatrice describes it via vision and adds it to your knowledgebase."
                 style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: attachmentLoading ? 'wait' : 'pointer', color: '#9ca3af', opacity: attachmentLoading ? 0.5 : 1 }}>
                 <i className="ph ph-camera" style={{ fontSize: '18px' }}></i>
               </button>
               <input type="text" placeholder="Message Beatrice..." value={chatInput} onChange={e => setChatInput(e.target.value)}
                 style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', flex: 1, minWidth: 0, color: '#d1d5db', padding: '0 8px' }} />
-              <button type="submit"
-                style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#d946ef', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: 'pointer' }}>
-                <i className="ph-fill ph-arrow-up" style={{ color: 'white', fontSize: '14px' }}></i>
+              <button
+                type="submit"
+                aria-label="Send message"
+                title={canSend ? 'Send message' : 'Type a message to send'}
+                disabled={!canSend}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: canSend ? 'linear-gradient(135deg, #d946ef 0%, #a855f7 100%)' : 'rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: canSend ? '1px solid rgba(217,70,239,0.55)' : '1px solid rgba(255,255,255,0.06)',
+                  cursor: canSend ? 'pointer' : 'not-allowed',
+                  color: canSend ? '#ffffff' : '#6b7280',
+                  boxShadow: canSend ? '0 4px 14px rgba(168,85,247,0.35)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}>
+                <i className="ph ph-paper-plane-tilt" style={{ fontSize: '16px', fontWeight: 600 }}></i>
               </button>
             </div>
           </form>
@@ -1631,7 +1700,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: 'white' }}>{displayName}</h3>
             <p style={{ fontSize: '14px', color: '#d946ef' }}>{currentUser?.email || profile?.email || 'Not signed in'}</p>
             <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-              {currentUser?.metadata?.createdAt ? 'Member since ' + new Date(parseInt(currentUser.metadata.createdAt)).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ''}
+              {currentUser?.metadata?.creationTime ? 'Member since ' + new Date(currentUser.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ''}
             </p>
           </div>
 
@@ -1903,6 +1972,31 @@ function AppShell({ children }: { children: React.ReactNode }) {
 // MAIN APP
 // ═══════════════════════════════════════════════════════
 function App() {
+  const isSidebarOpen = useUI(state => state.isSidebarOpen);
+  const toggleSidebar = useUI(state => state.toggleSidebar);
+
+  const closeSidebar = useCallback(() => {
+    if (useUI.getState().isSidebarOpen) {
+      toggleSidebar();
+    }
+  }, [toggleSidebar]);
+
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', onEscape);
+    return () => {
+      window.removeEventListener('keydown', onEscape);
+    };
+  }, [closeSidebar, isSidebarOpen]);
+
   if (!API_KEY) {
     return <MissingApiKeyScreen />;
   }
@@ -1914,7 +2008,15 @@ function App() {
           <AppShell>
             <StreamingConsole />
           </AppShell>
-          <Sidebar />
+          <div className={`sidebar-drawer-shell ${isSidebarOpen ? 'open' : ''}`} aria-hidden={!isSidebarOpen}>
+            <button
+              type="button"
+              className="sidebar-drawer-overlay"
+              aria-label="Close tools and services panel"
+              onClick={closeSidebar}
+            />
+            <Sidebar />
+          </div>
           <DocumentScannerModal />
           <UserProfileOnboardingModal />
           <EburonFlixOverlay />

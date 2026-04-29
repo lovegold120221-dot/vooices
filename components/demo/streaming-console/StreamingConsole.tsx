@@ -131,6 +131,8 @@ export default function StreamingConsole() {
     setCameraEnabled,
     cameraPreviewUrl,
     micLevel,
+    micMuted,
+    setMicMuted,
     isChatOpen,
     toggleChat,
     micPermission,
@@ -834,9 +836,12 @@ export default function StreamingConsole() {
       {/* Bottom Controls */}
       <div style={styles.bottomControls}>
         <button
-          style={styles.glassCircleBtn}
+          style={{
+            ...styles.glassCircleBtn,
+            ...(speakerMuted ? styles.sideControlInactive : styles.sideControlActive),
+          }}
           onClick={() => setSpeakerMuted(!speakerMuted)}
-          title="Speaker"
+          title={speakerMuted ? 'Unmute speaker' : 'Mute speaker'}
         >
           <i
             className={speakerMuted ? 'ph ph-speaker-simple-x' : 'ph ph-speaker-high'}
@@ -844,8 +849,8 @@ export default function StreamingConsole() {
           ></i>
         </button>
 
-        {/* Main Mic Button with Audio Visualizer */}
-        <div style={styles.micButtonWrapper}>
+        {/* Main Play/Stop Button */}
+        <div style={styles.playButtonWrapper}>
           <button
             style={{
               ...styles.micFab,
@@ -858,10 +863,9 @@ export default function StreamingConsole() {
             {micPermission === 'requesting' ? (
               <i className="ph ph-hourglass" style={styles.micIcon}></i>
             ) : (
-              <i className={connected ? "ph-fill ph-stop" : "ph-fill ph-microphone"} style={styles.micIcon}></i>
+              <i className={connected ? 'ph-fill ph-stop' : 'ph-fill ph-play'} style={styles.micIcon}></i>
             )}
           </button>
-          {/* Audio Visualizer Ring around mic button */}
           {connected && (
             <div style={styles.micVisualizerRing}>
               <AudioVisualizer />
@@ -869,22 +873,52 @@ export default function StreamingConsole() {
           )}
         </div>
 
-        <button
-          style={styles.glassCircleBtn}
-          onClick={openCamera}
-          title="Open video camera for snapshot analysis"
-        >
-          <i className="ph ph-video-camera" style={styles.icon}></i>
-        </button>
-
-        <button
-          style={styles.glassCircleBtn}
-          onClick={toggleChat}
-          title={isChatOpen ? 'Close conversation' : 'Open conversation'}
-        >
-          <i className={isChatOpen ? 'ph ph-x' : 'ph ph-chat-teardrop-text'} style={styles.icon}></i>
-        </button>
+        <div style={styles.inputMicWrapper}>
+          <button
+            style={{
+              ...styles.glassCircleBtn,
+              ...(connected && !micMuted ? styles.sideControlActive : styles.sideControlInactive),
+              opacity: connected ? 1 : 0.5,
+              cursor: connected ? 'pointer' : 'not-allowed',
+            }}
+            onClick={() => connected && setMicMuted(!micMuted)}
+            title={connected ? (micMuted ? 'Unmute microphone' : 'Mute microphone') : 'Start session first'}
+            disabled={!connected}
+          >
+            <i
+              className={micMuted ? 'ph ph-microphone-slash' : 'ph ph-microphone'}
+              style={styles.icon}
+            ></i>
+          </button>
+          {connected && !micMuted && (
+            <div style={styles.inputMicVisualizer} aria-hidden="true">
+              {[0, 1, 2, 3, 4].map(index => {
+                const normalized = Math.max(0.12, micLevel);
+                const variance = 0.56 + ((index % 2) * 0.18);
+                const height = 8 + normalized * (18 + index * 3) * variance;
+                return (
+                  <span
+                    key={index}
+                    style={{
+                      ...styles.inputMicBar,
+                      height: `${height}px`,
+                      opacity: 0.38 + normalized * 0.62,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
+
+      <button
+        style={styles.chatToggleBtn}
+        onClick={toggleChat}
+        title={isChatOpen ? 'Close conversation' : 'Open conversation'}
+      >
+        <i className={isChatOpen ? 'ph ph-x' : 'ph ph-chat-teardrop-text'} style={styles.icon}></i>
+      </button>
 
       {/* Chat Drawer */}
       <div
@@ -960,12 +994,17 @@ export default function StreamingConsole() {
         <div style={styles.chatInputArea}>
           {/* Camera Button - Left */}
           <button
-            style={styles.chatIconBtn}
-            onClick={openCamera}
-            title="Capture or scan with camera"
+            style={{
+              ...styles.chatIconBtn,
+              ...(cameraEnabled ? styles.chatIconBtnActive : {}),
+              opacity: connected ? 1 : 0.5,
+              cursor: connected ? 'pointer' : 'not-allowed',
+            }}
+            onClick={() => setCameraEnabled(!cameraEnabled)}
+            title={cameraEnabled ? 'Stop live camera stream' : 'Start live camera stream'}
             disabled={!connected}
           >
-            <i className="ph ph-camera" style={styles.chatIconSmall}></i>
+            <i className={cameraEnabled ? 'ph-fill ph-video-camera' : 'ph ph-video-camera'} style={styles.chatIconSmall}></i>
           </button>
 
           {/* Text Input - Center */}
@@ -1010,7 +1049,7 @@ export default function StreamingConsole() {
             onClick={handleManualSend}
             disabled={!connected}
           >
-            <i className="ph-fill ph-arrow-up" style={styles.sendIcon}></i>
+            <i className="ph-fill ph-paper-plane-tilt" style={styles.sendIcon}></i>
           </button>
         </div>
       </div>
@@ -1332,7 +1371,7 @@ const styles: Record<string, React.CSSProperties> = {
     transform: 'translateX(-50%)',
     display: 'flex',
     alignItems: 'center',
-    gap: '24px',
+    gap: '34px',
     zIndex: 100,
   },
   micFab: {
@@ -1356,8 +1395,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '32px',
     color: 'white',
   },
-  // Mic button with visualizer ring
-  micButtonWrapper: {
+  playButtonWrapper: {
     position: 'relative',
     width: '100px',
     height: '100px',
@@ -1379,9 +1417,37 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.8,
     pointerEvents: 'none',
   },
+  inputMicWrapper: {
+    position: 'relative',
+    width: '58px',
+    height: '58px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inputMicVisualizer: {
+    position: 'absolute',
+    top: '-16px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    alignItems: 'flex-end',
+    gap: '3px',
+    width: '30px',
+    height: '24px',
+    pointerEvents: 'none',
+  },
+  inputMicBar: {
+    width: '3px',
+    minHeight: '8px',
+    borderRadius: '9999px',
+    background: 'linear-gradient(to top, rgba(217, 70, 239, 0.4), rgba(240, 171, 252, 0.95))',
+    boxShadow: '0 0 10px rgba(217, 70, 239, 0.28)',
+    transition: 'height 80ms linear, opacity 80ms linear',
+  },
   chatToggleBtn: {
     position: 'fixed',
-    bottom: '48px',
+    bottom: '132px',
     right: '24px',
     width: '44px',
     height: '44px',
@@ -1538,15 +1604,16 @@ const styles: Record<string, React.CSSProperties> = {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    background: '#d946ef',
+    background: 'linear-gradient(135deg, #f472b6 0%, #d946ef 48%, #7e22ce 100%)',
     border: 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
+    boxShadow: '0 10px 24px rgba(217, 70, 239, 0.28)',
   },
   sendIcon: {
-    fontSize: '18px',
+    fontSize: '20px',
     color: 'white',
   },
   chatIconBtn: {
@@ -1563,8 +1630,22 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'white',
     flexShrink: 0,
   },
+  sideControlActive: {
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.18)',
+    boxShadow: '0 14px 32px rgba(0, 0, 0, 0.2)',
+  },
+  sideControlInactive: {
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+  },
+  chatIconBtnActive: {
+    background: 'rgba(217, 70, 239, 0.22)',
+    border: '1px solid rgba(244, 114, 182, 0.38)',
+    boxShadow: '0 0 0 1px rgba(244, 114, 182, 0.12) inset',
+  },
   chatIconSmall: {
     fontSize: '16px',
-    color: '#9ca3af',
+    color: '#d1d5db',
   },
 };

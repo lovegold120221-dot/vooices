@@ -1285,17 +1285,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
         aria-hidden={currentView !== 'view-history'}>
         <div style={{ position: 'absolute', bottom: 0, right: 0, width: '250px', height: '250px', background: 'rgba(168,85,247,0.1)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '0 24px 120px', paddingTop: 'calc(var(--header-height) + 16px)', height: '100%' }}>
-          <div style={{ marginBottom: '16px', flexShrink: 0 }}></div>
-            <button onClick={() => {
-              if (!currentUser || conversations.length === 0) return;
-              if (!confirm('Clear all conversation history?')) return;
-              setConversations([]);
-              createNewConversation();
-              if (currentUser) set(ref(rtdb, 'users/' + currentUser.uid + '/conversations'), {});
-            }} style={{ fontSize: '11px', color: 'rgba(248,113,113,0.7)', padding: '6px 12px', borderRadius: '9999px', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              Clear
-            </button>
-          
           <div style={{ flex: 1, overflowY: 'auto' }} className="no-scrollbar">
             {conversations.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
@@ -1725,19 +1714,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-image'}>
         <div style={{ position: 'absolute', top: 0, right: 0, width: '250px', height: '250px', background: 'rgba(168,85,247,0.15)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '56px 24px 48px', height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
-            <button onClick={goBack} className="glass glass-btn"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-            <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'white' }}>Image Generation</h2>
-            <button onClick={() => navigateTo('view-home')} className="glass glass-btn"
-              title="Back to home"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-house" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-          </nav>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: 'calc(var(--header-height) + 16px) 24px 120px', height: '100%' }}>
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }} className="no-scrollbar">
             {imageMessages.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
@@ -1781,19 +1758,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-video'}>
         <div style={{ position: 'absolute', bottom: 0, left: 0, width: '300px', height: '300px', background: 'rgba(59,130,246,0.1)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '56px 24px 48px', height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
-            <button onClick={goBack} className="glass glass-btn"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-            <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'white' }}>Video Generation</h2>
-            <button onClick={() => navigateTo('view-home')} className="glass glass-btn"
-              title="Back to home"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-house" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-          </nav>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: 'calc(var(--header-height) + 16px) 24px 120px', height: '100%' }}>
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }} className="no-scrollbar">
             {videoMessages.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
@@ -1835,8 +1800,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           with sticky input forms (text/image/video) get their own header
           shortcuts so they don't overlap. */}
       {(() => {
-        const NAV_HIDDEN_VIEWS = new Set(['view-splash', 'view-auth', 'view-voice']);
-        const navVisible = !NAV_HIDDEN_VIEWS.has(currentView);
+        const navVisible = currentView === 'view-home';
         const navItem = (target: string, icon: string, label: string) => (
           <button
             key={target}

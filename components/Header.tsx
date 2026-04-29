@@ -152,4 +152,3 @@ export default function Header({ currentView = 'view-home', onBack, onNavigate, 
     </header>
   );
 }
-}

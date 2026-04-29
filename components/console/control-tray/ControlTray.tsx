@@ -33,7 +33,6 @@ export type ControlTrayProps = {
 
 function ControlTray({ children, hidden = false }: ControlTrayProps) {
   const [audioRecorder] = useState(() => new AudioRecorder());
-  const [muted, setMuted] = useState(false);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -53,6 +52,8 @@ function ControlTray({ children, hidden = false }: ControlTrayProps) {
     cameraEnabled,
     setCameraEnabled,
     setCameraPreviewUrl,
+    micMuted,
+    setMicMuted,
     setMicPermission,
   } = useUI();
   const setMicLevel = useUI.getState().setMicLevel;
@@ -71,10 +72,10 @@ function ControlTray({ children, hidden = false }: ControlTrayProps) {
 
   useEffect(() => {
     if (!connected) {
-      setMuted(false);
+      setMicMuted(false);
       setMicLevel(0);
     }
-  }, [connected, setMicLevel]);
+  }, [connected, setMicLevel, setMicMuted]);
 
   useEffect(() => {
     if (!cameraEnabled) {
@@ -123,7 +124,7 @@ function ControlTray({ children, hidden = false }: ControlTrayProps) {
       }
     };
 
-    if (connected && !muted && audioRecorder) {
+    if (connected && !micMuted && audioRecorder) {
       startAudio();
     } else {
       audioRecorder.stop();
@@ -135,7 +136,7 @@ function ControlTray({ children, hidden = false }: ControlTrayProps) {
       audioRecorder.off('volume', onVolume);
       setMicLevel(0);
     };
-  }, [connected, client, muted, audioRecorder, setMicLevel, disconnect, setMicPermission]);
+  }, [connected, client, micMuted, audioRecorder, setMicLevel, disconnect, setMicPermission]);
 
   useEffect(() => {
     let disposed = false;
@@ -236,14 +237,14 @@ function ControlTray({ children, hidden = false }: ControlTrayProps) {
 
   const handleMicClick = () => {
     if (connected) {
-      setMuted(!muted);
+      setMicMuted(!micMuted);
     } else {
       connect();
     }
   };
 
   const micButtonTitle = connected
-    ? muted
+    ? micMuted
       ? 'Unmute microphone'
       : 'Mute microphone'
     : 'Connect and start microphone';
@@ -264,7 +265,7 @@ function ControlTray({ children, hidden = false }: ControlTrayProps) {
           onClick={handleMicClick}
           title={micButtonTitle}
         >
-          {!muted ? (
+          {!micMuted ? (
             <span className="material-symbols-outlined filled">mic</span>
           ) : (
             <span className="material-symbols-outlined filled">mic_off</span>

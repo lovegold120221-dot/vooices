@@ -98,6 +98,8 @@ export const useUI = create<{
   setTaskResult: (result: TaskResult | null) => void;
   micLevel: number;
   setMicLevel: (level: number) => void;
+  micMuted: boolean;
+  setMicMuted: (muted: boolean) => void;
   micPermission: MicPermissionState;
   micPermissionMessage: string | null;
   setMicPermission: (permission: MicPermissionState, message?: string | null) => void;
@@ -117,6 +119,8 @@ export const useUI = create<{
   setTaskResult: (result) => set({ taskResult: result }),
   micLevel: 0,
   setMicLevel: level => set({ micLevel: Number.isFinite(level) ? Math.max(0, Math.min(level, 1)) : 0 }),
+  micMuted: false,
+  setMicMuted: micMuted => set({ micMuted }),
   micPermission: 'unknown',
   micPermissionMessage: null,
   setMicPermission: (micPermission, micPermissionMessage = null) =>

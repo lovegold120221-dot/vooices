@@ -1092,29 +1092,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         aria-hidden={currentView !== 'view-home'}>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '300px', height: '300px', background: 'rgba(168,85,247,0.15)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
         <div style={{ flex: 1, padding: '96px 24px 120px', overflowY: 'auto', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-          <nav style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '24px' }}>
-            <button onClick={() => navigateTo('view-settings')} className="glass glass-btn"
-              title="Settings"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <i className="ph ph-gear" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-          </nav>
-          <div onClick={() => navigateTo('view-profile')} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', cursor: 'pointer', width: 'max-content' }}>
-            {currentUser?.photoURL ? (
-              <img src={currentUser.photoURL} alt={displayName}
-                style={{ width: '44px', height: '44px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', objectFit: 'cover' }} />
-            ) : (
-              <div aria-label={displayName}
-                style={{ width: '44px', height: '44px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', background: 'linear-gradient(135deg, #d946ef, #7e22ce)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '13px', fontWeight: 700 }}>
-                {avatarInitials}
-              </div>
-            )}
-            <div>
-              <p style={{ fontSize: '12px', color: '#9ca3af', lineHeight: 1.2 }}>{getGreeting()}</p>
-              <p style={{ fontSize: '15px', fontWeight: 500, lineHeight: 1.4, marginTop: '2px', color: 'white' }}>{preferredAddress}</p>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px', marginTop: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px', marginTop: '8px' }}>
             <button onClick={() => navigateTo('view-voice')}
               style={{ gridColumn: 'span 1', gridRow: 'span 2', borderRadius: '28px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', height: '220px', cursor: 'pointer', background: 'transparent' }}>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #f0abfc, #7e22ce)', opacity: 0.4 }} />

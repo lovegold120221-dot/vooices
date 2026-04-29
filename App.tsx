@@ -442,7 +442,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
     // 1) Show Beatrice opening message
     const userName = profile?.preferred_name || currentUser?.displayName || undefined;
-    const opening = getBeatriceOpening(taskInfo, userName);
+    const opening = getBeatriceOpeniit to maim
+    it nfo, userName);
     setProcessingMessages([{ id: 'opening_0', text: opening, type: 'opening' }]);
     updateProcessingConsoleState(prev => {
       const next = updateProcessingStep(prev, 'route', 'done', `Matched task type: ${taskInfo.type}`);

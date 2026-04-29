@@ -11,7 +11,14 @@ import { auth } from '@/lib/firebase';
 import { useState, useEffect } from 'react';
 import c from 'classnames';
 
-export default function Header() {
+interface HeaderProps {
+  currentView?: string;
+  onBack?: () => void;
+  onNavigate?: (view: string) => void;
+  onClearHistory?: () => void;
+}
+
+export default function Header({ currentView = 'view-home', onBack, onNavigate, onClearHistory }: HeaderProps) {
   const { isGeneratingTask, toggleSidebar } = useUI();
   const micLevel = useUI(state => state.micLevel);
   const { connected, volume } = useLiveAPIContext();

@@ -1159,7 +1159,18 @@ function AppShell({ children }: { children: React.ReactNode }) {
       
       {/* Global Header — sticky across all pages */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
-        <Header />
+        <Header
+          currentView={currentView}
+          onBack={goBack}
+          onNavigate={navigateTo}
+          onClearHistory={() => {
+            if (!currentUser || conversations.length === 0) return;
+            if (!confirm('Clear all conversation history?')) return;
+            setConversations([]);
+            createNewConversation();
+            if (currentUser) set(ref(rtdb, 'users/' + currentUser.uid + '/conversations'), {});
+          }}
+        />
       </div>
 
       {/* StreamingConsole renders as fixed overlay so its position:fixed elements don't break */}
@@ -1180,23 +1191,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-text'}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'sticky', top: 'var(--header-height)', zIndex: 50, background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginTop: 'var(--header-height)' }}>
-            <button onClick={goBack} className="glass glass-btn"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'white' }}>Beatrice</h2>
-              <span style={{ fontSize: '10px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '6px', height: '6px', backgroundColor: '#4ade80', borderRadius: '50%' }}></span> Online
-              </span>
-            </div>
-            <button onClick={() => navigateTo('view-history')} className="glass glass-btn"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-clock-counter-clockwise" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-          </nav>
-          <div ref={chatRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px 24px' }} className="no-scrollbar">
+          <div ref={chatRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px 24px', paddingTop: 'calc(var(--header-height) + 16px)' }} className="no-scrollbar">
             {chatMessages.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
                 <div style={{ textAlign: 'center' }}>
@@ -1289,13 +1284,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-history'}>
         <div style={{ position: 'absolute', bottom: 0, right: 0, width: '250px', height: '250px', background: 'rgba(168,85,247,0.1)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '0 24px 120px', height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0, paddingTop: 'calc(var(--header-height) + 16px)' }}>
-            <button onClick={goBack} className="glass glass-btn"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-            <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'white' }}>Conversation History</h2>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '0 24px 120px', paddingTop: 'calc(var(--header-height) + 16px)', height: '100%' }}>
+          <div style={{ marginBottom: '16px', flexShrink: 0 }}></div>
             <button onClick={() => {
               if (!currentUser || conversations.length === 0) return;
               if (!confirm('Clear all conversation history?')) return;
@@ -1305,7 +1295,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             }} style={{ fontSize: '11px', color: 'rgba(248,113,113,0.7)', padding: '6px 12px', borderRadius: '9999px', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
               Clear
             </button>
-          </nav>
+          
           <div style={{ flex: 1, overflowY: 'auto' }} className="no-scrollbar">
             {conversations.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
@@ -1346,20 +1336,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         className={'page-view' + (currentView === 'view-settings' ? ' active' : '')}
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-settings'}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '0 24px 120px', height: '100%' }}>
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0, paddingTop: 'calc(var(--header-height) + 16px)' }}>
-            <button onClick={goBack} className="glass glass-btn"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-            <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'white' }}>AI Settings</h2>
-            <button onClick={() => navigateTo('view-home')} className="glass glass-btn"
-              title="Back to home"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-house" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-          </nav>
-
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10, padding: '0 24px 120px', paddingTop: 'calc(var(--header-height) + 16px)', height: '100%' }}>
           {/* Tab Navigation */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexShrink: 0 }}>
             <button onClick={() => setSettingsTab('general')}
@@ -1651,19 +1628,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         style={{ backgroundColor: '#0a0a0a' }}
         aria-hidden={currentView !== 'view-profile'}>
         <div style={{ position: 'absolute', top: 0, right: 0, width: '300px', height: '300px', background: 'rgba(236,72,153,0.15)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
-        <div style={{ flex: 1, padding: '56px 24px 48px', overflowY: 'auto', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-          <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
-            <button onClick={goBack} className="glass glass-btn"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-caret-left" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-            <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'white' }}>Profile</h2>
-            <button onClick={() => navigateTo('view-home')} className="glass glass-btn"
-              title="Back to home"
-              style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ph ph-house" style={{ fontSize: '18px', color: '#9ca3af' }}></i>
-            </button>
-          </nav>
+        <div style={{ flex: 1, padding: 'calc(var(--header-height) + 16px) 24px 120px', overflowY: 'auto', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
             {currentUser?.photoURL ? (
               <img src={currentUser.photoURL} alt={displayName}

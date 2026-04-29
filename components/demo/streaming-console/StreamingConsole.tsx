@@ -44,13 +44,20 @@ const formatTimestamp = (date: Date) => {
   return `${hours}:${minutes}:${seconds}.${milliseconds}`;
 };
 
-const mergeTranscriptText = (previousText: string, incomingText: string) => {
+const mergeTranscriptText = (previousText: string, incomingText: string, isFinal: boolean = false) => {
   const previous = previousText.trim();
   const incoming = incomingText.trim();
 
   if (!previous) return incomingText;
   if (!incoming) return previousText;
+  
+  // For interim updates, just replace entirely for immediate display
+  // This avoids expensive overlap detection on every keystroke
+  if (!isFinal) {
+    return incomingText;
+  }
 
+  // Only do complex merging for final transcription
   if (incoming === previous) return previousText;
   if (incoming.startsWith(previous)) return incomingText;
   if (previous.startsWith(incoming)) return previousText;
@@ -206,59 +213,62 @@ export default function StreamingConsole() {
   useEffect(() => {
     const { addTurn, updateLastTurn } = useLogStore.getState();
 
-    const handleInputTranscription = async (text: string, isFinal: boolean) => {
+    const handleInputTranscription = (text: string, isFinal: boolean) => {
+      // Immediate UI update - happens synchronously
       const turns = useLogStore.getState().turns;
       const last = turns[turns.length - 1];
       if (last && last.role === 'user' && !last.isFinal) {
         updateLastTurn({
-          text: mergeTranscriptText(last.text, text),
+          text: mergeTranscriptText(last.text, text, isFinal),
           isFinal,
         });
       } else {
         addTurn({ role: 'user', text, isFinal });
       }
 
-      // Log to test store when final
+      // Async operations happen in background (fire-and-forget for interim, awaited for final)
       if (isFinal) {
-        try {
-          await addDoc(collection(db, 'turns'), {
-            user_id: profile?.user_id || getRuntimeUserIdentity().userId,
-            role: 'user',
-            text,
-            timestamp: serverTimestamp(),
-            isFinal: true,
-          });
-        } catch (e) {
-          console.error('Error syncing user transcript to Firebase:', e);
-        }
+        (async () => {
+          try {
+            await addDoc(collection(db, 'turns'), {
+              user_id: profile?.user_id || getRuntimeUserIdentity().userId,
+              role: 'user',
+              text,
+              timestamp: serverTimestamp(),
+              isFinal: true,
+            });
+          } catch (e) {
+            console.error('Error syncing user transcript to Firebase:', e);
+          }
 
-        logConversation(addEntry, 'user', text, { 
-          source: 'voice',
-          timestamp: Date.now(),
-        });
-        
-        const preferredAddress = extractPreferredAddress(text);
-        if (preferredAddress) {
-          void submitOnboarding({
-            preferred_name: profile?.preferred_name || preferredAddress,
-            preferred_address: preferredAddress,
+          logConversation(addEntry, 'user', text, { 
+            source: 'voice',
+            timestamp: Date.now(),
           });
-        }
+          
+          const preferredAddress = extractPreferredAddress(text);
+          if (preferredAddress) {
+            void submitOnboarding({
+              preferred_name: profile?.preferred_name || preferredAddress,
+              preferred_address: preferredAddress,
+            });
+          }
 
-        const intent = VoiceCommandRouter.detectIntent(text);
-        if (intent.intent === 'DOCUMENT_SCAN_INTENT') {
-          useDocumentVisionStore.getState().openScanner({
-            userRequest: text,
-            autoSaveLongMemory: /save|remember|long memory|permanent/i.test(text),
-            saveRequested: /save|remember|long memory|permanent/i.test(text),
-          });
-          useLogStore.getState().addTurn({
-            role: 'system',
-            text: 'Opening Beatrice Document Vision for the current voice request.',
-            isFinal: true,
-          });
-          addEntry('system', 'Opening Beatrice Document Vision', { intent: intent.intent });
-        }
+          const intent = VoiceCommandRouter.detectIntent(text);
+          if (intent.intent === 'DOCUMENT_SCAN_INTENT') {
+            useDocumentVisionStore.getState().openScanner({
+              userRequest: text,
+              autoSaveLongMemory: /save|remember|long memory|permanent/i.test(text),
+              saveRequested: /save|remember|long memory|permanent/i.test(text),
+            });
+            useLogStore.getState().addTurn({
+              role: 'system',
+              text: 'Opening Beatrice Document Vision for the current voice request.',
+              isFinal: true,
+            });
+            addEntry('system', 'Opening Beatrice Document Vision', { intent: intent.intent });
+          }
+        })();
       }
     };
 
@@ -267,7 +277,7 @@ export default function StreamingConsole() {
       const last = turns[turns.length - 1];
       if (last && last.role === 'agent' && !last.isFinal) {
         updateLastTurn({
-          text: mergeTranscriptText(last.text, text),
+          text: mergeTranscriptText(last.text, text, isFinal),
           isFinal,
         });
       } else {
@@ -298,7 +308,7 @@ export default function StreamingConsole() {
 
       if (last?.role === 'agent' && !last.isFinal) {
         const updatedTurn: Partial<ConversationTurn> = {
-          text: mergeTranscriptText(last.text, text),
+          text: mergeTranscriptText(last.text, text, false),
         };
         if (groundingChunks) {
           updatedTurn.groundingChunks = [
@@ -948,6 +958,17 @@ export default function StreamingConsole() {
         </div>
 
         <div style={styles.chatInputArea}>
+          {/* Camera Button - Left */}
+          <button
+            style={styles.chatIconBtn}
+            onClick={openCamera}
+            title="Capture or scan with camera"
+            disabled={!connected}
+          >
+            <i className="ph ph-camera" style={styles.chatIconSmall}></i>
+          </button>
+
+          {/* Text Input - Center */}
           <input
             type="text"
             value={manualMessage}
@@ -961,6 +982,25 @@ export default function StreamingConsole() {
             disabled={!connected}
             style={styles.chatInput}
           />
+
+          {/* Microphone Button - Right of input */}
+          <button
+            style={{
+              ...styles.chatIconBtn,
+              opacity: connected ? 1 : 0.5,
+              cursor: connected ? 'pointer' : 'not-allowed',
+            }}
+            onClick={handleMicToggle}
+            disabled={!connected}
+            title={connected ? 'Toggle voice recording' : 'Start session to record'}
+          >
+            <i 
+              className={connected ? 'ph-fill ph-microphone' : 'ph ph-microphone'} 
+              style={styles.chatIconSmall}
+            ></i>
+          </button>
+
+          {/* Send Button - Far Right */}
           <button
             style={{
               ...styles.sendBtn,
@@ -1508,5 +1548,23 @@ const styles: Record<string, React.CSSProperties> = {
   sendIcon: {
     fontSize: '18px',
     color: 'white',
+  },
+  chatIconBtn: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    color: 'white',
+    flexShrink: 0,
+  },
+  chatIconSmall: {
+    fontSize: '16px',
+    color: '#9ca3af',
   },
 };
